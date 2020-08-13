@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  labels:
+    app: grafana
+spec:
+  ports:
+    - port: 3000
+      nodePort: 30003
+  selector:
+    app: grafana
+  type: NodePort
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-grafana
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1 
+kind: Deployment
+metadata:
+  name: graf-deploy 
+  labels:
+    app: grafana
+spec:
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+      - image: grafana/grafana
+        name: grafana
+        ports:
+        - containerPort: 3000
+          name: grafana
+        volumeMounts:
+        - name: graf-config
+          mountPath: /etc/grafana/provisioning/datasources/datasource.yml
+          subPath: datasource.yml
+        - name: pv-grafana
+          mountPath: /var/lib/grafana
+      volumes:
+      - name: graf-config
+        configMap:
+          name: prom-graf-config
+      - name: pv-grafana
+        persistentVolumeClaim:
+          claimName: pvc-grafana

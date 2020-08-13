@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  labels:
+    app: prometheus
+spec:
+  ports:
+    - port: 9090
+      nodePort: 30002
+  selector:
+    app: prometheus
+  type: NodePort
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-prometheus
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1 
+kind: Deployment
+metadata:
+  name: prom-deploy 
+  labels:
+    app: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      containers:
+      - image: prom/prometheus
+        name: prometheus
+        ports:
+        - containerPort: 9090
+          name: prometheus
+        volumeMounts:
+        - name: prom-config
+          mountPath: /etc/prometheus/prometheus.yml
+          subPath: prometheus.yml
+        - name: pv-prometheus
+          mountPath: /prometheus
+      volumes:
+      - name: prom-config
+        configMap:
+          name: prom-graf-config
+      - name: pv-prometheus
+        persistentVolumeClaim:
+          claimName: pvc-prometheus
